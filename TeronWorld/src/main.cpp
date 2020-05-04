@@ -190,18 +190,27 @@ int main(int argc, char* argv[])
 			normal.y = line1.z * line2.x - line1.x * line2.z;
 			normal.z = line1.x * line2.y - line1.y * line2.x;
 
+			// normalize the normal
 			float normal_length = sqrtf(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
 			normal.x /= normal_length;
 			normal.y /= normal_length;
 			normal.z /= normal_length;
 
-			//if (normal.z < 0)
 			if (
 				normal.x * (translated_triangle.p[0].x - camera.x) +
 				normal.y * (translated_triangle.p[0].y - camera.y) +
 				normal.z * (translated_triangle.p[0].z - camera.z) < 0.0f
 				)
 			{
+				// illumination
+				vec3 light_direction = { 0.0f, 0.0f, -1.0f };
+				// normalize the light direction vector
+				float light_direction_length = sqrtf(
+					light_direction.x * light_direction.x + light_direction.y * light_direction.y + light_direction.z * light_direction.z);
+				light_direction.x /= light_direction_length;
+				light_direction.y /= light_direction_length;
+				light_direction.z /= light_direction_length;
+				
 				// project 3d point to 2d plane
 				multiply_mat_vec(&projection_matrix, &translated_triangle.p[0], &projected_triangle.p[0]);
 				multiply_mat_vec(&projection_matrix, &translated_triangle.p[1], &projected_triangle.p[1]);
@@ -222,7 +231,8 @@ int main(int argc, char* argv[])
 				projected_triangle.p[2].x *= 0.5f * (float)window_width;
 				projected_triangle.p[2].y *= 0.5f * (float)window_height;
 
-				draw_triangle(renderer, projected_triangle);
+				//draw_triangle(renderer, projected_triangle);
+				fill_triangle(renderer, projected_triangle);
 			}
 		}
 
