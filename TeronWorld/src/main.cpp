@@ -154,7 +154,6 @@ int main(int argc, char* argv[])
 		matRotX.m[2][2] = cosf(fTheta * 0.5f);
 		matRotX.m[3][3] = 1;
 
-		SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
 		for (Triangle triangle : cube.triangles)
 		{
 			Triangle projected_triangle, translated_triangle, rotatedZ_triangle, rotatedZX_triangle;
@@ -210,11 +209,17 @@ int main(int argc, char* argv[])
 				light_direction.x /= light_direction_length;
 				light_direction.y /= light_direction_length;
 				light_direction.z /= light_direction_length;
+
+				// How similar is normal to light direction
+				float dot_product = normal.x * light_direction.x + normal.y * light_direction.y + normal.z * light_direction.z;
+				translated_triangle.color = { 255.0f * dot_product, 255.0f * dot_product, 255.0f * dot_product };
 				
 				// project 3d point to 2d plane
 				multiply_mat_vec(&projection_matrix, &translated_triangle.p[0], &projected_triangle.p[0]);
 				multiply_mat_vec(&projection_matrix, &translated_triangle.p[1], &projected_triangle.p[1]);
 				multiply_mat_vec(&projection_matrix, &translated_triangle.p[2], &projected_triangle.p[2]);
+
+				projected_triangle.color = translated_triangle.color;
 
 				// scale into view
 				projected_triangle.p[0].x += 1.0f;

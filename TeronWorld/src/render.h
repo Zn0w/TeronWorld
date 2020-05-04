@@ -7,6 +7,8 @@
 
 void draw_triangle(SDL_Renderer* renderer, Triangle triangle)
 {
+	SDL_SetRenderDrawColor(renderer, triangle.color.x, triangle.color.y, triangle.color.z, SDL_ALPHA_OPAQUE);
+
 	SDL_RenderDrawLine(renderer, triangle.p[0].x, triangle.p[0].y, triangle.p[1].x, triangle.p[1].y);
 	SDL_RenderDrawLine(renderer, triangle.p[1].x, triangle.p[1].y, triangle.p[2].x, triangle.p[2].y);
 	SDL_RenderDrawLine(renderer, triangle.p[2].x, triangle.p[2].y, triangle.p[0].x, triangle.p[0].y);
@@ -34,6 +36,8 @@ static float min(float a, float b, float c)
 
 void fill_triangle(SDL_Renderer* renderer, Triangle triangle)
 {
+	SDL_SetRenderDrawColor(renderer, triangle.color.x, triangle.color.y, triangle.color.z, SDL_ALPHA_OPAQUE);
+	
 	float max_x = max(triangle.p[0].x, triangle.p[1].x, triangle.p[2].x);
 	float max_y = max(triangle.p[0].y, triangle.p[1].y, triangle.p[2].y);
 	float min_x = min(triangle.p[0].x, triangle.p[1].x, triangle.p[2].x);
