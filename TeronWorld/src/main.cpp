@@ -12,6 +12,7 @@ bool running = false;
 Mesh cube;
 mat4x4 projection_matrix;
 float fTheta = 0.0f;
+vec3 camera = { 0 };
 
 
 void init(SDL_Window* window)
@@ -128,12 +129,14 @@ int main(int argc, char* argv[])
 
 		auto this_time = std::chrono::steady_clock::now();
 		//std::chrono::duration<float> diff = last_time - this_time;
-		float fElapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(last_time - this_time).count();
+		float fElapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(this_time - last_time).count();
 		last_time = this_time;
+
+		printf("dt = %f ms\n", fElapsedTime);
 
 		// Set up rotation matrices
 		mat4x4 matRotZ, matRotX;
-		fTheta += 0.01f * fElapsedTime;
+		fTheta += 0.01f * fElapsedTime * M_PI / 6;
 
 		// Rotation Z
 		matRotZ.m[0][0] = cosf(fTheta);
@@ -172,27 +175,55 @@ int main(int argc, char* argv[])
 			translated_triangle.p[1].z = rotatedZX_triangle.p[1].z + 3.0f;
 			translated_triangle.p[2].z = rotatedZX_triangle.p[2].z + 3.0f;
 
-			// project 3d point to 2d plane
-			multiply_mat_vec(&projection_matrix, &translated_triangle.p[0], &projected_triangle.p[0]);
-			multiply_mat_vec(&projection_matrix, &translated_triangle.p[1], &projected_triangle.p[1]);
-			multiply_mat_vec(&projection_matrix, &translated_triangle.p[2], &projected_triangle.p[2]);
+			// find normals
+			vec3 normal, line1, line2;
 			
-			// scale into view
-			projected_triangle.p[0].x += 1.0f;
-			projected_triangle.p[0].y += 1.0f;
-			projected_triangle.p[1].x += 1.0f;
-			projected_triangle.p[1].y += 1.0f;
-			projected_triangle.p[2].x += 1.0f;
-			projected_triangle.p[2].y += 1.0f;
-			
-			projected_triangle.p[0].x *= 0.5f * (float)window_width;
-			projected_triangle.p[0].y *= 0.5f * (float)window_height;
-			projected_triangle.p[1].x *= 0.5f * (float)window_width;
-			projected_triangle.p[1].y *= 0.5f * (float)window_height;
-			projected_triangle.p[2].x *= 0.5f * (float)window_width;
-			projected_triangle.p[2].y *= 0.5f * (float)window_height;
-			
-			draw_triangle(renderer, projected_triangle);
+			line1.x = translated_triangle.p[1].x - translated_triangle.p[0].x;
+			line1.y = translated_triangle.p[1].y - translated_triangle.p[0].y;
+			line1.z = translated_triangle.p[1].z - translated_triangle.p[0].z;
+
+			line2.x = translated_triangle.p[2].x - translated_triangle.p[0].x;
+			line2.y = translated_triangle.p[2].y - translated_triangle.p[0].y;
+			line2.z = translated_triangle.p[2].z - translated_triangle.p[0].z;
+
+			normal.x = line1.y * line2.z - line1.z * line2.y;
+			normal.y = line1.z * line2.x - line1.x * line2.z;
+			normal.z = line1.x * line2.y - line1.y * line2.x;
+
+			float normal_length = sqrtf(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+			normal.x /= normal_length;
+			normal.y /= normal_length;
+			normal.z /= normal_length;
+
+			//if (normal.z < 0)
+			if (
+				normal.x * (translated_triangle.p[0].x - camera.x) +
+				normal.y * (translated_triangle.p[0].y - camera.y) +
+				normal.z * (translated_triangle.p[0].z - camera.z) < 0.0f
+				)
+			{
+				// project 3d point to 2d plane
+				multiply_mat_vec(&projection_matrix, &translated_triangle.p[0], &projected_triangle.p[0]);
+				multiply_mat_vec(&projection_matrix, &translated_triangle.p[1], &projected_triangle.p[1]);
+				multiply_mat_vec(&projection_matrix, &translated_triangle.p[2], &projected_triangle.p[2]);
+
+				// scale into view
+				projected_triangle.p[0].x += 1.0f;
+				projected_triangle.p[0].y += 1.0f;
+				projected_triangle.p[1].x += 1.0f;
+				projected_triangle.p[1].y += 1.0f;
+				projected_triangle.p[2].x += 1.0f;
+				projected_triangle.p[2].y += 1.0f;
+
+				projected_triangle.p[0].x *= 0.5f * (float)window_width;
+				projected_triangle.p[0].y *= 0.5f * (float)window_height;
+				projected_triangle.p[1].x *= 0.5f * (float)window_width;
+				projected_triangle.p[1].y *= 0.5f * (float)window_height;
+				projected_triangle.p[2].x *= 0.5f * (float)window_width;
+				projected_triangle.p[2].y *= 0.5f * (float)window_height;
+
+				draw_triangle(renderer, projected_triangle);
+			}
 		}
 
 		SDL_RenderPresent(renderer);
