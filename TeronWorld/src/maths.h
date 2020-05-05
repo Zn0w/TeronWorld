@@ -1,23 +1,11 @@
 #pragma once
 
 #include <cmath>
-#include <vector>
 
 
 struct vec3
 {
 	float x, y, z;
-};
-
-struct Triangle
-{
-	vec3 p[3];
-	vec3 color;
-};
-
-struct Mesh
-{
-	std::vector<Triangle> triangles;
 };
 
 // row-column

@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <chrono>
+#include <algorithm>
 
 #include <SDL.h>
 
-#include "vector.h"
+#include "maths.h"
+#include "graphics.h"
 #include "render.h"
 
 
@@ -17,7 +19,7 @@ vec3 camera = { 0 };
 
 void init(SDL_Window* window)
 {
-	cube.triangles = {
+	/*cube.triangles = {
 		// SOUTH
 		{ 0.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,    1.0f, 1.0f, 0.0f },
 		{ 0.0f, 0.0f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 0.0f, 0.0f },
@@ -41,7 +43,12 @@ void init(SDL_Window* window)
 		// BOTTOM                                                    
 		{ 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f },
 		{ 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f }
-	};
+	};*/
+	if (!load_from_obj_file("resources/SpaceShipFighter.obj", &cube))
+	{
+		printf("Failed to load obj resource\n");
+		return;
+	}
 
 	// Projection Matrix
 	float fNear = 0.1f;
@@ -154,6 +161,7 @@ int main(int argc, char* argv[])
 		matRotX.m[2][2] = cosf(fTheta * 0.5f);
 		matRotX.m[3][3] = 1;
 
+		Mesh mesh_to_raster;
 		for (Triangle triangle : cube.triangles)
 		{
 			Triangle projected_triangle, translated_triangle, rotatedZ_triangle, rotatedZX_triangle;
@@ -170,9 +178,9 @@ int main(int argc, char* argv[])
 
 			// Offset into the screen
 			translated_triangle = rotatedZX_triangle;
-			translated_triangle.p[0].z = rotatedZX_triangle.p[0].z + 3.0f;
-			translated_triangle.p[1].z = rotatedZX_triangle.p[1].z + 3.0f;
-			translated_triangle.p[2].z = rotatedZX_triangle.p[2].z + 3.0f;
+			translated_triangle.p[0].z = rotatedZX_triangle.p[0].z + 8.0f;
+			translated_triangle.p[1].z = rotatedZX_triangle.p[1].z + 8.0f;
+			translated_triangle.p[2].z = rotatedZX_triangle.p[2].z + 8.0f;
 
 			// find normals
 			vec3 normal, line1, line2;
@@ -236,10 +244,22 @@ int main(int argc, char* argv[])
 				projected_triangle.p[2].x *= 0.5f * (float)window_width;
 				projected_triangle.p[2].y *= 0.5f * (float)window_height;
 
-				//draw_triangle(renderer, projected_triangle);
-				fill_triangle(renderer, projected_triangle);
+				mesh_to_raster.triangles.push_back(projected_triangle);
 			}
 		}
+
+		// sort the collection of triangles in the mesh from back to front (so the furthest visible triangles will be drawn first)
+		std::sort(mesh_to_raster.triangles.begin(), mesh_to_raster.triangles.end(), [](Triangle &t1, Triangle &t2) {
+			// find triangles' mid point
+			float z1 = (t1.p[0].z + t1.p[1].z + t1.p[2].z) / 3.0f;
+			float z2 = (t2.p[0].z + t2.p[1].z + t2.p[2].z) / 3.0f;
+
+			// so, if t1 is further from the camera, then swap
+			return z1 > z2;
+		});
+
+		for (Triangle triangle : mesh_to_raster.triangles)
+			fill_triangle(renderer, triangle);
 
 		SDL_RenderPresent(renderer);
 

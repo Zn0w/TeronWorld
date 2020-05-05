@@ -2,7 +2,8 @@
 
 #include <SDL.h>
 
-#include "vector.h"
+#include "maths.h"
+#include "graphics.h"
 
 
 void draw_triangle(SDL_Renderer* renderer, Triangle triangle)
