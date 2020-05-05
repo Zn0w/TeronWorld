@@ -10,7 +10,10 @@
 struct Triangle
 {
 	vec3 p[3];
-	vec3 color;
+	vec3 outline_color;
+	vec3 fill_color;
+	bool render_outline = true;
+	bool render_fill = true;
 };
 
 struct Mesh

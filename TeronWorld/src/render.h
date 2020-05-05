@@ -6,9 +6,9 @@
 #include "graphics.h"
 
 
-void draw_triangle(SDL_Renderer* renderer, Triangle triangle)
+void draw_triangle(SDL_Renderer* renderer, Triangle& triangle)
 {
-	SDL_SetRenderDrawColor(renderer, triangle.color.x, triangle.color.y, triangle.color.z, SDL_ALPHA_OPAQUE);
+	SDL_SetRenderDrawColor(renderer, triangle.outline_color.x, triangle.outline_color.y, triangle.outline_color.z, SDL_ALPHA_OPAQUE);
 
 	SDL_RenderDrawLine(renderer, triangle.p[0].x, triangle.p[0].y, triangle.p[1].x, triangle.p[1].y);
 	SDL_RenderDrawLine(renderer, triangle.p[1].x, triangle.p[1].y, triangle.p[2].x, triangle.p[2].y);
@@ -35,9 +35,9 @@ static float min(float a, float b, float c)
 		return c;
 }
 
-void fill_triangle(SDL_Renderer* renderer, Triangle triangle)
+void fill_triangle(SDL_Renderer* renderer, Triangle& triangle)
 {
-	SDL_SetRenderDrawColor(renderer, triangle.color.x, triangle.color.y, triangle.color.z, SDL_ALPHA_OPAQUE);
+	SDL_SetRenderDrawColor(renderer, triangle.fill_color.x, triangle.fill_color.y, triangle.fill_color.z, SDL_ALPHA_OPAQUE);
 	
 	float max_x = max(triangle.p[0].x, triangle.p[1].x, triangle.p[2].x);
 	float max_y = max(triangle.p[0].y, triangle.p[1].y, triangle.p[2].y);
@@ -54,6 +54,14 @@ void fill_triangle(SDL_Renderer* renderer, Triangle triangle)
 			}
 		}
 	}
+}
+
+void render(SDL_Renderer* renderer, Triangle& triangle)
+{
+	if (triangle.render_fill)
+		fill_triangle(renderer, triangle);
+	if (triangle.render_outline)
+		draw_triangle(renderer, triangle);
 }
 
 void draw_mesh(SDL_Renderer* renderer, Mesh mesh)

@@ -220,14 +220,14 @@ int main(int argc, char* argv[])
 
 				// How similar is normal to light direction
 				float dot_product = normal.x * light_direction.x + normal.y * light_direction.y + normal.z * light_direction.z;
-				translated_triangle.color = { 255.0f * dot_product, 255.0f * dot_product, 255.0f * dot_product };
+				translated_triangle.fill_color = { 255.0f * dot_product, 255.0f * dot_product, 255.0f * dot_product };
 				
 				// project 3d point to 2d plane
 				multiply_mat_vec(&projection_matrix, &translated_triangle.p[0], &projected_triangle.p[0]);
 				multiply_mat_vec(&projection_matrix, &translated_triangle.p[1], &projected_triangle.p[1]);
 				multiply_mat_vec(&projection_matrix, &translated_triangle.p[2], &projected_triangle.p[2]);
 
-				projected_triangle.color = translated_triangle.color;
+				projected_triangle.fill_color = translated_triangle.fill_color;
 
 				// scale into view
 				projected_triangle.p[0].x += 1.0f;
@@ -244,6 +244,10 @@ int main(int argc, char* argv[])
 				projected_triangle.p[2].x *= 0.5f * (float)window_width;
 				projected_triangle.p[2].y *= 0.5f * (float)window_height;
 
+				// test of the outline rendering
+				projected_triangle.outline_color = { 255.0f, 0.0f, 0.0f };
+				//projected_triangle.render_outline = false;
+				
 				mesh_to_raster.triangles.push_back(projected_triangle);
 			}
 		}
@@ -259,7 +263,7 @@ int main(int argc, char* argv[])
 		});
 
 		for (Triangle triangle : mesh_to_raster.triangles)
-			fill_triangle(renderer, triangle);
+			render(renderer, triangle);
 
 		SDL_RenderPresent(renderer);
 
