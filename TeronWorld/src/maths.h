@@ -3,9 +3,25 @@
 #include <cmath>
 
 
+float max(float a, float b)
+{
+	if (a > b)
+		return a;
+	else
+		return b;
+}
+
+float min(float a, float b)
+{
+	if (a < b)
+		return a;
+	else
+		return b;
+}
+
 struct vec3
 {
-	float x, y, z, w;
+	float x = 0.0f, y = 0.0f, z = 0.0f, w = 1.0f;
 };
 
 vec3 add(vec3* v1, vec3* v2)
@@ -23,6 +39,11 @@ vec3 multiply(vec3* v, float s)
 	return { v->x * s, v->y * s, v->z * s };
 }
 
+vec3 divide(vec3* v, float s)
+{
+	return { v->x / s, v->y / s, v->z / s };
+}
+
 float dot_product(vec3* v1, vec3* v2)
 {
 	return v1->x * v2->x + v1->y * v2->y + v1->z * v2->z;
@@ -36,9 +57,7 @@ float length(vec3* v)
 vec3 normalize(vec3* v)
 {
 	float v_length = length(v);
-	v->x /= v_length;
-	v->y /= v_length;
-	v->z /= v_length;
+	return { v->x / v_length, v->y / v_length, v->z / v_length };
 }
 
 vec3 cross_product(vec3* v1, vec3* v2)

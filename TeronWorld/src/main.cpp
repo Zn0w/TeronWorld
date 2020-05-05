@@ -19,31 +19,6 @@ vec3 camera = { 0 };
 
 void init(SDL_Window* window)
 {
-	/*cube.triangles = {
-		// SOUTH
-		{ 0.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,    1.0f, 1.0f, 0.0f },
-		{ 0.0f, 0.0f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 0.0f, 0.0f },
-
-		// EAST                                                      
-		{ 1.0f, 0.0f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 1.0f, 1.0f },
-		{ 1.0f, 0.0f, 0.0f,    1.0f, 1.0f, 1.0f,    1.0f, 0.0f, 1.0f },
-
-		// NORTH                                                     
-		{ 1.0f, 0.0f, 1.0f,    1.0f, 1.0f, 1.0f,    0.0f, 1.0f, 1.0f },
-		{ 1.0f, 0.0f, 1.0f,    0.0f, 1.0f, 1.0f,    0.0f, 0.0f, 1.0f },
-
-		// WEST                                                      
-		{ 0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 1.0f,    0.0f, 1.0f, 0.0f },
-		{ 0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f },
-
-		// TOP                                                       
-		{ 0.0f, 1.0f, 0.0f,    0.0f, 1.0f, 1.0f,    1.0f, 1.0f, 1.0f },
-		{ 0.0f, 1.0f, 0.0f,    1.0f, 1.0f, 1.0f,    1.0f, 1.0f, 0.0f },
-
-		// BOTTOM                                                    
-		{ 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f },
-		{ 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f }
-	};*/
 	if (!load_from_obj_file("resources/SpaceShipFighter.obj", &cube))
 	{
 		printf("Failed to load obj resource\n");
@@ -54,19 +29,12 @@ void init(SDL_Window* window)
 	float fNear = 0.1f;
 	float fFar = 1000.0f;
 	float fFov = 90.0f;
+	
 	int width, height;
-
 	SDL_GetWindowSize(window, &width, &height);
 	float fAspectRatio = (float)height / (float)width;
 
-	float fFovRad = 1.0f / tanf(fFov * 0.5f / 180.0f * 3.14159f);
-
-	projection_matrix.m[0][0] = fAspectRatio * fFovRad;
-	projection_matrix.m[1][1] = fFovRad;
-	projection_matrix.m[2][2] = fFar / (fFar - fNear);
-	projection_matrix.m[3][2] = (-fFar * fNear) / (fFar - fNear);
-	projection_matrix.m[2][3] = 1.0f;
-	projection_matrix.m[3][3] = 0.0f;
+	projection_matrix = make_projection_matrix(fFov, fAspectRatio, fNear, fFar);
 	
 	running = true;
 }
@@ -141,101 +109,71 @@ int main(int argc, char* argv[])
 
 		printf("dt = %f ms\n", fElapsedTime);
 
-		// Set up rotation matrices
-		mat4x4 matRotZ, matRotX;
+		// make transformation matrices
+		mat4x4 Z_rotation_matrix, X_rotation_matrix;
 		fTheta += 0.01f * fElapsedTime * M_PI / 6;
+		Z_rotation_matrix = make_rotation_Z_matrix(fTheta);
+		X_rotation_matrix = make_rotation_X_matrix(fTheta);
 
-		// Rotation Z
-		matRotZ.m[0][0] = cosf(fTheta);
-		matRotZ.m[0][1] = sinf(fTheta);
-		matRotZ.m[1][0] = -sinf(fTheta);
-		matRotZ.m[1][1] = cosf(fTheta);
-		matRotZ.m[2][2] = 1;
-		matRotZ.m[3][3] = 1;
+		mat4x4 translation_matrix = make_translation_matrix(0.0f, 0.0f, 8.0f);
 
-		// Rotation X
-		matRotX.m[0][0] = 1;
-		matRotX.m[1][1] = cosf(fTheta * 0.5f);
-		matRotX.m[1][2] = sinf(fTheta * 0.5f);
-		matRotX.m[2][1] = -sinf(fTheta * 0.5f);
-		matRotX.m[2][2] = cosf(fTheta * 0.5f);
-		matRotX.m[3][3] = 1;
+		// combine transformation matrices into one world matrix
+		mat4x4 world_matrix = make_identity_matrix();
+		world_matrix = multiply_mat_mat(&Z_rotation_matrix, &X_rotation_matrix);
+		world_matrix = multiply_mat_mat(&world_matrix, &translation_matrix);
 
 		Mesh mesh_to_raster;
 		for (Triangle triangle : cube.triangles)
 		{
-			Triangle projected_triangle, translated_triangle, rotatedZ_triangle, rotatedZX_triangle;
+			Triangle projected_triangle, transformed_triangle;
 
-			// Rotate in Z-Axis
-			multiply_mat_vec(&matRotZ, &triangle.p[0], &rotatedZ_triangle.p[0]);
-			multiply_mat_vec(&matRotZ, &triangle.p[1], &rotatedZ_triangle.p[1]);
-			multiply_mat_vec(&matRotZ, &triangle.p[2], &rotatedZ_triangle.p[2]);
-
-			// Rotate in X-Axis
-			multiply_mat_vec(&matRotX, &rotatedZ_triangle.p[0], &rotatedZX_triangle.p[0]);
-			multiply_mat_vec(&matRotX, &rotatedZ_triangle.p[1], &rotatedZX_triangle.p[1]);
-			multiply_mat_vec(&matRotX, &rotatedZ_triangle.p[2], &rotatedZX_triangle.p[2]);
-
-			// Offset into the screen
-			translated_triangle = rotatedZX_triangle;
-			translated_triangle.p[0].z = rotatedZX_triangle.p[0].z + 8.0f;
-			translated_triangle.p[1].z = rotatedZX_triangle.p[1].z + 8.0f;
-			translated_triangle.p[2].z = rotatedZX_triangle.p[2].z + 8.0f;
+			transformed_triangle.p[0] = multiply_mat_vec(&world_matrix, &triangle.p[0]);
+			transformed_triangle.p[1] = multiply_mat_vec(&world_matrix, &triangle.p[1]);
+			transformed_triangle.p[2] = multiply_mat_vec(&world_matrix, &triangle.p[2]);
 
 			// find normals
 			vec3 normal, line1, line2;
 			
-			line1.x = translated_triangle.p[1].x - translated_triangle.p[0].x;
-			line1.y = translated_triangle.p[1].y - translated_triangle.p[0].y;
-			line1.z = translated_triangle.p[1].z - translated_triangle.p[0].z;
+			line1 = subtract(&transformed_triangle.p[1], &transformed_triangle.p[0]);
+			line2 = subtract(&transformed_triangle.p[2], &transformed_triangle.p[0]);
 
-			line2.x = translated_triangle.p[2].x - translated_triangle.p[0].x;
-			line2.y = translated_triangle.p[2].y - translated_triangle.p[0].y;
-			line2.z = translated_triangle.p[2].z - translated_triangle.p[0].z;
+			normal = cross_product(&line1, &line2);
 
-			normal.x = line1.y * line2.z - line1.z * line2.y;
-			normal.y = line1.z * line2.x - line1.x * line2.z;
-			normal.z = line1.x * line2.y - line1.y * line2.x;
+			normal = normalize(&normal);
 
-			// normalize the normal
-			float normal_length = sqrtf(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
-			normal.x /= normal_length;
-			normal.y /= normal_length;
-			normal.z /= normal_length;
-
-			if (
-				normal.x * (translated_triangle.p[0].x - camera.x) +
-				normal.y * (translated_triangle.p[0].y - camera.y) +
-				normal.z * (translated_triangle.p[0].z - camera.z) < 0.0f
-				)
+			// Get Ray from triangle to camera
+			vec3 camera_ray = subtract(&transformed_triangle.p[0], &camera);
+			
+			// If ray is aligned with normal, then triangle is visible
+			if (dot_product(&normal, &camera_ray) < 0.0f)
 			{
 				// illumination
 				vec3 light_direction = { 0.0f, 0.0f, -1.0f };
-				// normalize the light direction vector
-				float light_direction_length = sqrtf(
-					light_direction.x * light_direction.x + light_direction.y * light_direction.y + light_direction.z * light_direction.z);
-				light_direction.x /= light_direction_length;
-				light_direction.y /= light_direction_length;
-				light_direction.z /= light_direction_length;
+				light_direction = normalize(&light_direction);
 
 				// How similar is normal to light direction
-				float dot_product = normal.x * light_direction.x + normal.y * light_direction.y + normal.z * light_direction.z;
-				translated_triangle.fill_color = { 255.0f * dot_product, 255.0f * dot_product, 255.0f * dot_product };
+				float dp = max(0.1f, dot_product(&light_direction, &normal));
+				transformed_triangle.fill_color = { 255.0f * dp, 255.0f * dp, 255.0f * dp };
 				
 				// project 3d point to 2d plane
-				multiply_mat_vec(&projection_matrix, &translated_triangle.p[0], &projected_triangle.p[0]);
-				multiply_mat_vec(&projection_matrix, &translated_triangle.p[1], &projected_triangle.p[1]);
-				multiply_mat_vec(&projection_matrix, &translated_triangle.p[2], &projected_triangle.p[2]);
+				projected_triangle.p[0] = multiply_mat_vec(&projection_matrix, &transformed_triangle.p[0]);
+				projected_triangle.p[1] = multiply_mat_vec(&projection_matrix, &transformed_triangle.p[1]);
+				projected_triangle.p[2] = multiply_mat_vec(&projection_matrix, &transformed_triangle.p[2]);
 
-				projected_triangle.fill_color = translated_triangle.fill_color;
+				projected_triangle.fill_color = transformed_triangle.fill_color;
 
-				// scale into view
-				projected_triangle.p[0].x += 1.0f;
-				projected_triangle.p[0].y += 1.0f;
-				projected_triangle.p[1].x += 1.0f;
-				projected_triangle.p[1].y += 1.0f;
-				projected_triangle.p[2].x += 1.0f;
-				projected_triangle.p[2].y += 1.0f;
+				// Scale into view, we moved the normalising into cartesian space
+				// out of the matrix.vector function from the previous videos, so
+				// do this manually
+				projected_triangle.p[0] = divide(&projected_triangle.p[0], projected_triangle.p[0].w);
+				projected_triangle.p[1] = divide(&projected_triangle.p[1], projected_triangle.p[1].w);
+				projected_triangle.p[2] = divide(&projected_triangle.p[2], projected_triangle.p[2].w);
+
+				// Offset vertices into visible normalized space
+				vec3 offset_view = { 1,1,0 };
+				projected_triangle.p[0] = add(&projected_triangle.p[0], &offset_view);
+				projected_triangle.p[1] = add(&projected_triangle.p[1], &offset_view);
+				projected_triangle.p[2] = add(&projected_triangle.p[2], &offset_view);
 
 				projected_triangle.p[0].x *= 0.5f * (float)window_width;
 				projected_triangle.p[0].y *= 0.5f * (float)window_height;
