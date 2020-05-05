@@ -14,7 +14,8 @@ bool running = false;
 Mesh cube;
 mat4x4 projection_matrix;
 float fTheta = 0.0f;
-vec3 camera = { 0 };
+vec3 camera;
+vec3 look_direction;
 
 
 void init(SDL_Window* window)
@@ -97,17 +98,16 @@ int main(int argc, char* argv[])
 	auto last_time = std::chrono::steady_clock::now();
 	while (running)
 	{
-		SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-		SDL_RenderClear(renderer);
-
-		//update();
-
 		auto this_time = std::chrono::steady_clock::now();
-		//std::chrono::duration<float> diff = last_time - this_time;
 		float fElapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(this_time - last_time).count();
 		last_time = this_time;
 
 		printf("dt = %f ms\n", fElapsedTime);
+		
+		SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+		SDL_RenderClear(renderer);
+
+		//update();
 
 		// make transformation matrices
 		mat4x4 Z_rotation_matrix, X_rotation_matrix;
@@ -122,10 +122,20 @@ int main(int argc, char* argv[])
 		world_matrix = multiply_mat_mat(Z_rotation_matrix, X_rotation_matrix);
 		world_matrix = multiply_mat_mat(world_matrix, translation_matrix);
 
+		// make camera matrix
+		look_direction = { 0.0f, 0.0f, 1.0f };
+		vec3 up = { 0.0f, 1.0f, 0.0f };
+		vec3 target = add(camera, look_direction);
+		
+		mat4x4 camera_matrix = point_at_matrix(camera, target, up);
+
+		// make view matrix from camera matrix
+		mat4x4 view_matrix = quick_inverse_matrix(camera_matrix);
+
 		Mesh mesh_to_raster;
 		for (Triangle triangle : cube.triangles)
 		{
-			Triangle projected_triangle, transformed_triangle;
+			Triangle projected_triangle, transformed_triangle, viewed_triangle;
 
 			transformed_triangle.p[0] = multiply_mat_vec(world_matrix, triangle.p[0]);
 			transformed_triangle.p[1] = multiply_mat_vec(world_matrix, triangle.p[1]);
@@ -154,11 +164,16 @@ int main(int argc, char* argv[])
 				// How similar is normal to light direction
 				float dp = max(0.1f, dot_product(light_direction, normal));
 				transformed_triangle.fill_color = { 255.0f * dp, 255.0f * dp, 255.0f * dp };
+
+				// convert world space to view space
+				viewed_triangle.p[0] = multiply_mat_vec(view_matrix, transformed_triangle.p[0]);
+				viewed_triangle.p[1] = multiply_mat_vec(view_matrix, transformed_triangle.p[1]);
+				viewed_triangle.p[2] = multiply_mat_vec(view_matrix, transformed_triangle.p[2]);
 				
 				// project 3d point to 2d plane
-				projected_triangle.p[0] = multiply_mat_vec(projection_matrix, transformed_triangle.p[0]);
-				projected_triangle.p[1] = multiply_mat_vec(projection_matrix, transformed_triangle.p[1]);
-				projected_triangle.p[2] = multiply_mat_vec(projection_matrix, transformed_triangle.p[2]);
+				projected_triangle.p[0] = multiply_mat_vec(projection_matrix, viewed_triangle.p[0]);
+				projected_triangle.p[1] = multiply_mat_vec(projection_matrix, viewed_triangle.p[1]);
+				projected_triangle.p[2] = multiply_mat_vec(projection_matrix, viewed_triangle.p[2]);
 
 				projected_triangle.fill_color = transformed_triangle.fill_color;
 
@@ -211,6 +226,18 @@ int main(int argc, char* argv[])
 			if (event.type == SDL_QUIT)
 			{
 				running = false;
+			}
+			else if (event.type == SDL_KEYDOWN)
+			{
+				if (event.key.keysym.sym == SDLK_UP)
+					camera.y += 0.5f * fElapsedTime;
+				else if (event.key.keysym.sym == SDLK_DOWN)
+					camera.y -= 0.5f * fElapsedTime;
+
+				if (event.key.keysym.sym == SDLK_RIGHT)
+					camera.x += 0.5f * fElapsedTime;
+				else if (event.key.keysym.sym == SDLK_LEFT)
+					camera.x -= 0.5f * fElapsedTime;
 			}
 		}
 	}

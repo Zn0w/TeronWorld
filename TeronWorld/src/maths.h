@@ -169,22 +169,35 @@ mat4x4 multiply_mat_mat(mat4x4& m1, mat4x4& m2)
 mat4x4 point_at_matrix(vec3& pos, vec3& target, vec3& up)
 {
 	// Calculate new forward direction
-	vec3 newForward = subtract(target, pos);
-	newForward = normalize(newForward);
+	vec3 new_forward = subtract(target, pos);
+	new_forward = normalize(new_forward);
 
 	// Calculate new Up direction
-	vec3 a = multiply(newForward, dot_product(up, newForward));
-	vec3 newUp = subtract(up, a);
-	newUp = normalize(newUp);
+	vec3 a = multiply(new_forward, dot_product(up, new_forward));
+	vec3 new_up = subtract(up, a);
+	new_up = normalize(new_up);
 
 	// New Right direction is easy, its just cross product
-	vec3 newRight = cross_product(newUp, newForward);
+	vec3 new_right = cross_product(new_up, new_forward);
 
 	// Construct Dimensioning and Translation Matrix	
 	mat4x4 matrix;
-	matrix.m[0][0] = newRight.x;	matrix.m[0][1] = newRight.y;	matrix.m[0][2] = newRight.z;	matrix.m[0][3] = 0.0f;
-	matrix.m[1][0] = newUp.x;		matrix.m[1][1] = newUp.y;		matrix.m[1][2] = newUp.z;		matrix.m[1][3] = 0.0f;
-	matrix.m[2][0] = newForward.x;	matrix.m[2][1] = newForward.y;	matrix.m[2][2] = newForward.z;	matrix.m[2][3] = 0.0f;
+	matrix.m[0][0] = new_right.x;	matrix.m[0][1] = new_right.y;	matrix.m[0][2] = new_right.z;	matrix.m[0][3] = 0.0f;
+	matrix.m[1][0] = new_up.x;		matrix.m[1][1] = new_up.y;		matrix.m[1][2] = new_up.z;		matrix.m[1][3] = 0.0f;
+	matrix.m[2][0] = new_forward.x;	matrix.m[2][1] = new_forward.y;	matrix.m[2][2] = new_forward.z;	matrix.m[2][3] = 0.0f;
 	matrix.m[3][0] = pos.x;			matrix.m[3][1] = pos.y;			matrix.m[3][2] = pos.z;			matrix.m[3][3] = 1.0f;
+	return matrix;
+}
+
+mat4x4 quick_inverse_matrix(mat4x4& m) // Only for Rotation/Translation Matrices
+{
+	mat4x4 matrix;
+	matrix.m[0][0] = m.m[0][0]; matrix.m[0][1] = m.m[1][0]; matrix.m[0][2] = m.m[2][0]; matrix.m[0][3] = 0.0f;
+	matrix.m[1][0] = m.m[0][1]; matrix.m[1][1] = m.m[1][1]; matrix.m[1][2] = m.m[2][1]; matrix.m[1][3] = 0.0f;
+	matrix.m[2][0] = m.m[0][2]; matrix.m[2][1] = m.m[1][2]; matrix.m[2][2] = m.m[2][2]; matrix.m[2][3] = 0.0f;
+	matrix.m[3][0] = -(m.m[3][0] * matrix.m[0][0] + m.m[3][1] * matrix.m[1][0] + m.m[3][2] * matrix.m[2][0]);
+	matrix.m[3][1] = -(m.m[3][0] * matrix.m[0][1] + m.m[3][1] * matrix.m[1][1] + m.m[3][2] * matrix.m[2][1]);
+	matrix.m[3][2] = -(m.m[3][0] * matrix.m[0][2] + m.m[3][1] * matrix.m[1][2] + m.m[3][2] * matrix.m[2][2]);
+	matrix.m[3][3] = 1.0f;
 	return matrix;
 }
