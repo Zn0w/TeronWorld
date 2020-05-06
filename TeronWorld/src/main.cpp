@@ -13,9 +13,13 @@ bool running = false;
 
 Mesh cube;
 mat4x4 projection_matrix;
+
 float fTheta = 0.0f;
+
 vec3 camera;
 vec3 look_direction;
+
+float yaw = 0.0f;
 
 
 void init(SDL_Window* window)
@@ -115,7 +119,7 @@ int main(int argc, char* argv[])
 		Z_rotation_matrix = make_rotation_Z_matrix(fTheta);
 		X_rotation_matrix = make_rotation_X_matrix(fTheta);
 
-		mat4x4 translation_matrix = make_translation_matrix(0.0f, 0.0f, 16.0f);
+		mat4x4 translation_matrix = make_translation_matrix(0.0f, 0.0f, 8.0f);
 
 		// combine transformation matrices into one world matrix
 		mat4x4 world_matrix = make_identity_matrix();
@@ -123,9 +127,11 @@ int main(int argc, char* argv[])
 		world_matrix = multiply_mat_mat(world_matrix, translation_matrix);
 
 		// make camera matrix
-		look_direction = { 0.0f, 0.0f, 1.0f };
 		vec3 up = { 0.0f, 1.0f, 0.0f };
-		vec3 target = add(camera, look_direction);
+		vec3 target = { 0.0f, 0.0f, 1.0f };
+		mat4x4 camera_rotation_matrix = make_rotation_Y_matrix(yaw);
+		look_direction = multiply_mat_vec(camera_rotation_matrix, target);
+		target = add(camera, look_direction);
 		
 		mat4x4 camera_matrix = point_at_matrix(camera, target, up);
 
@@ -184,6 +190,14 @@ int main(int argc, char* argv[])
 				projected_triangle.p[1] = divide(projected_triangle.p[1], projected_triangle.p[1].w);
 				projected_triangle.p[2] = divide(projected_triangle.p[2], projected_triangle.p[2].w);
 
+				// X/Y are inverted so put them back
+				projected_triangle.p[0].x *= -1.0f;
+				projected_triangle.p[1].x *= -1.0f;
+				projected_triangle.p[2].x *= -1.0f;
+				projected_triangle.p[0].y *= -1.0f;
+				projected_triangle.p[1].y *= -1.0f;
+				projected_triangle.p[2].y *= -1.0f;
+
 				// Offset vertices into visible normalized space
 				vec3 offset_view = { 1,1,0 };
 				projected_triangle.p[0] = add(projected_triangle.p[0], offset_view);
@@ -238,6 +252,18 @@ int main(int argc, char* argv[])
 					camera.x += 0.5f * fElapsedTime;
 				else if (event.key.keysym.sym == SDLK_LEFT)
 					camera.x -= 0.5f * fElapsedTime;
+
+				if (event.key.keysym.sym == SDLK_a)
+					yaw -= 0.02f * fElapsedTime;
+				else if (event.key.keysym.sym == SDLK_d)
+					yaw += 0.02f * fElapsedTime;
+
+				vec3 forward = multiply(look_direction, 1.5f * fElapsedTime);
+
+				if (event.key.keysym.sym == SDLK_w)
+					camera = add(camera, forward);
+				else if (event.key.keysym.sym == SDLK_s)
+					camera = subtract(camera, forward);
 			}
 		}
 	}
